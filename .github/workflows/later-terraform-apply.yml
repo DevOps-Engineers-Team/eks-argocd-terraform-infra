@@ -1,0 +1,53 @@
+name: 'Later Terraform Apply'
+
+on:
+    workflow_dispatch:
+      inputs:
+        tf_version:
+          description: 'Terraform version to use'     
+          required: true
+          default: 1.1.7
+        tf_folder:
+          description: 'Choose folder where the terraform code is located'     
+          required: true
+          type: choice
+          default: set path
+
+jobs:
+  terraform-apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: "${{ github.event.inputs.tf_folder }}"
+
+    # Checkout the repository to the GitHub Actions runner
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:iam::512632984379:role/gh-oidc-role
+        role-session-name: gh-oidc-role-sts-session
+        aws-region: eu-west-1
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: "${{ github.event.inputs.tf_version }}"
+  
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+   
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
